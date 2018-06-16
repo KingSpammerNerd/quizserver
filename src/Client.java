@@ -1,4 +1,4 @@
-//RESUME DEVELOPMENT FROM LINE 136 (13/06/2018)
+//RESUME DEVELOPMENT FROM LINE 222 (16/06/2018)
 import java.util.*;
 import javax.swing.*;
 import java.net.*;
@@ -44,22 +44,15 @@ public class Client {
 		//Create error message:
 		JDialog er=new JDialog(parent);
 		er.setLayout(new GridLayout(2, 1));
-		er.setSize(100, 70);
-		//Hide parent frame:
-		parent.setVisible(false);
+		er.setSize(120, 85);
 		//Add label:
 		er.add(new JLabel(errortext));
 		//Create button:
 		JButton cl=new JButton("OK");
 		cl.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent a) {
-				//Clear text fields:
-				ipbox.setText("");
-				portbox.setText("");
-				//Hide error dialog:
-				er.setVisible(false);
-				//Make parent frame visible again:
-				parent.setVisible(true);
+				//Dispose error dialog:
+				er.dispose();
 			}
 		});
 		//Add button:
@@ -133,6 +126,8 @@ public class Client {
 	
 	//Start quiz client, takes number of questions as argument:
 	private void quizMain(int n) {
+		//Question object:
+		Question qtemp;
 		//Add 5 rows: selector buttons, question content, previous answer (if any), option selector, "Select answer" and submit buttons:
 		fmain.setLayout(new GridLayout(5, 1));
 		//Is the test active?
@@ -146,7 +141,12 @@ public class Client {
 		JTextField prevans=new JTextField(400);
 		prevans.setEditable(false);
 		//Option selector:
-		JList opts=null;
+		JDropDown opts=new JDropDown();
+		
+		//Array to store answers:
+		String[] answers=new String[n];
+		//Array to store responses:
+		String[] responses=new String[n];
 		
 		//Button panel:
 		JPanel bpanel=new JPanel();
@@ -159,7 +159,12 @@ public class Client {
 					//Tell the server we're sending a response:
 					sv_out.writeUTF("A");
 					if(sv_in.readUTF().equals("OK")) {
-						
+						//Send question number:
+						sv_out.writeUTF(String.valueOf(curq));
+						//Wait for response and send submitted answer:
+						if(sv_in.readUTF().equals("ANS") {
+							sv_out.writeUTF(opts.getSelectedOption());
+						}
 					}
 				} catch(IOException c) {
 					errBox("I/O Error!", fmain);
@@ -170,13 +175,51 @@ public class Client {
 		JButton submitbutton=new JButton("Submit");
 		submitbutton.addActionListener(new ActionListener() {
 			public void actionPerformed() {
-				//TODO
+				try {
+					//Send "Submit" signal to server:
+					sv_out.writeUTF("S");
+					//Get response from server:
+					if(sv_in.readUTF().equals("RESPS")) {
+						//Send OK to server:
+						sv_out.writeUTF("OK"):
+						//Get user responses:
+						for(int i=0; i<n; ++i) responses[i]=new String(sv_in.readUTF());
+					}
+					//Get answers from server:
+					if(sv_in.readUTF().equals("SOLS")) {
+						//Send OK to server:
+						sv_out.writeUTF("OK");
+						//Get answers:
+						for(int i=0; i<n; ++i) answers[i]=new String(sv_in.readUTF());
+					}
+					//Get score from server:
+					score=Integer.valueOf(sv_in.readUTF());
+					
+					//Start shutdown:
+					if(sv_in.readUTF().equals("BYE")) sv_out.writeUTF("BYE");
+					//Close connections:
+					sv_in.close();
+					sv_out.close();
+					question_in.close();
+					
+					//Kill fmain:
+					fmain.dispose();
+					//Build result string:
+					StringBuilder fin=new StringBuilder();
+					fin.append("RESULTS:\nRESPONSE\tANSWER\n");
+					for(int i=0; i<n; ++i) fin.append(responses[i] + '\t' + answers[i] + '\n');
+					fin.append("Score: " + score);
+					//Display results:
+					errBox(fin.toString(), null);
+				} catch(IOException c) {
+					errBox("I/O Error!", fmain);
+				}
 			}
 		});
 		
 		//Create question button panel and add buttons:
 		JButton qbuttons=new JButton[n];
-		for(int i=0; 
+		for(int i=0; //CONTINUE FROM HERE!
 	}
 	
 	//Main method:
