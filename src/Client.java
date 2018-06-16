@@ -133,7 +133,50 @@ public class Client {
 	
 	//Start quiz client, takes number of questions as argument:
 	private void quizMain(int n) {
-		fmain.setLayout(new GridLayout(//CONTINUE FROM HERE!
+		//Add 5 rows: selector buttons, question content, previous answer (if any), option selector, "Select answer" and submit buttons:
+		fmain.setLayout(new GridLayout(5, 1));
+		//Is the test active?
+		boolean test_active=true;
+		//Current question number:
+		int curq=0;
+		//Create Question content field:
+		JTextArea qcontent=new JTextArea(400, 400);
+		qcontent.setEditable(false);
+		//Previous answer field:
+		JTextField prevans=new JTextField(400);
+		prevans.setEditable(false);
+		//Option selector:
+		JList opts=null;
+		
+		//Button panel:
+		JPanel bpanel=new JPanel();
+		bpanel.setLayout(new GridLayout(1, 2));
+		//"Save answer" button:
+		JButton saveans=new JButton("Save answer");
+		saveans.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					//Tell the server we're sending a response:
+					sv_out.writeUTF("A");
+					if(sv_in.readUTF().equals("OK")) {
+						
+					}
+				} catch(IOException c) {
+					errBox("I/O Error!", fmain);
+				}
+			}
+		});
+		//Submit button:
+		JButton submitbutton=new JButton("Submit");
+		submitbutton.addActionListener(new ActionListener() {
+			public void actionPerformed() {
+				//TODO
+			}
+		});
+		
+		//Create question button panel and add buttons:
+		JButton qbuttons=new JButton[n];
+		for(int i=0; 
 	}
 	
 	//Main method:
