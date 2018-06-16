@@ -29,10 +29,19 @@ public class ClientHandler extends Thread {
 	//Array storing responses:
 	private String[] responses;
 	
-	//Constructor:
-	public ClientHandler(Socket sock, String folder) {
+	//Score reward:
+	int reward;
+	//Score deduction:
+	int ded;
+	
+	//Constructor, takes a socket object, folder name, reward and deduction:
+	public ClientHandler(Socket sock, String folder, int reward, int ded) {
 		//Store socket object:
 		this.client_sock=sock;
+		//Store score reward:
+		this.reward=reward;
+		//Store score deduction:
+		this.ded=ded;
 		
 		//Store IP address:
 		this.client_ip=sock.getRemoteSocketAddress().toString();
@@ -92,21 +101,7 @@ public class ClientHandler extends Thread {
 			//Start test:
 			client_out.writeUTF("START");
 			if(client_in.readUTF().equals("OK")) while(sv_active) handleTest();
-			
-			//Send results after test:
-			client_out.writeUTF("RESPS");
-			if(client_in.readUTF().equals("OK")) {
-				for(String s: responses) {
-					client_out.writeUTF(s);
-				}
-			}
-			client_out.writeUTF("SOLS");
-			if(client_in.readUTF().equals("OK")) {
-				for(Question q: questions) {
-					client_out.writeUTF(q.getAnswer());
-				}
-			}
-			
+						
 			//Close connection:
 			client_out.writeUTF("BYE");
 			if(client_in.readUTF().equals("BYE")) throw cc;		
@@ -136,6 +131,8 @@ public class ClientHandler extends Thread {
 			int ind=(Integer.valueOf(client_in.readUTF()))-1;
 			//Send question object from array:
 			question_out.writeObject(questions[ind]);
+			//Send previously submitted answer, if any:
+			client_out.writeUTF(responses[ind]);
 		}
 		else if(client_in.readUTF().equals("A")) {
 			client_out.writeUTF("OK");
@@ -147,6 +144,33 @@ public class ClientHandler extends Thread {
 			responses[ind]=client_in.readUTF();
 		}
 		else if(client_in.readUTF().equals("S")) {
+			//Score variable;
+			int score=0;
+			//Send candidate's responses:
+			client_out.writeUTF("RESPS");
+			if(client_in.readUTF().equals("OK")) {
+				for(String s: responses) {
+					client_out.writeUTF(s);
+				}
+			}
+			//Send answers and score:
+			client_out.writeUTF("SOLS");
+			if(client_in.readUTF().equals("OK")) {
+				for(int i=0; i<questions.length; ++i) {
+					//Change score:
+					if(questions[i].getAnswer().equals(responses[i]))
+						score+=reward;
+					else if(!questions[i].getAnswer().equals(responses[i]) && !responses[i].equals("")
+						score-=ded;
+					else
+						score+=0;
+					//Send answer:
+					client_out.writeUTF(questions[i].getAnswer());
+				}
+				//Send score:
+				client_out.writeUTF(String.valueOf(score));
+			}
+			
 			//Kill question handler:
 			sv_active=false;
 		}
