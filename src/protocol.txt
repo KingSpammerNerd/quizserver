@@ -1,0 +1,17 @@
+Client connects.
+Server sends the string "READY".
+Client sends the string "READY".
+Server creates Question objects and sends them to client as follows:
+1. Send number of questions (as String).
+2. Send string "START" and go to handleTest method when client sends "OK".
+
+When inside handleTest():
+1. If client sends "Q", the server sends back "OK", the client sends a question number, then server sends a Question object.
+2. If client sends "A", the server sends back "OK", then the client sends the question number, the server sends "ANS", then the client sends the answer. 
+
+Upon entering submit command:
+1. The server sends "RESPS", then the client sends back "OK".
+2. The server sends the responses.
+3. The server sends "ANS", then the client sends back "OK".
+4. The server sends the answers.
+5. The server sends the string "BYE". When the message is returned by the client, the connection is terminated.
