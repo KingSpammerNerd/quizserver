@@ -1,4 +1,3 @@
-//RESUME DEVELOPMENT FROM LINE 222 (16/06/2018)
 import java.util.*;
 import javax.swing.*;
 import java.net.*;
@@ -27,15 +26,13 @@ public class Client {
 	//ObjectInputStream, to receive question objects:
 	ObjectInputStream question_in;
 	
+	//Candidate's score:
+	private int score=0;
+	
 	//Constructor, creates main quiz frame and calls quizStart():
 	public Client() {
-		//Main application frame:
-		fmain=new JFrame();
-		fmain.setSize(1200, 1200);
-		fmain.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		//Open quiz start Dialog:
 		this.quizStart();
-		//TODO: Create main application frame (in another method)
 		
 	}
 	
@@ -83,7 +80,7 @@ public class Client {
 				} catch(IOException i) {
 					errBox("I/O Error!", startd);
 				} catch(Exception exc) {
-					if(exc.getMessage().equals("success")) quizInit(); //NOT FINISHED!
+					if(exc.getMessage().equals("success")) quizInit();
 				}
 			}
 		});
@@ -111,12 +108,16 @@ public class Client {
 				sv_out.writeUTF("READY");
 				//Get number of questions:
 				int no_of_questions=Integer.valueOf(sv_in.readUTF());
-				if(sv_in.readUTF().equals("START");
-				//Show a dialog box, asking if test should be started:
-				errBox("Ready to start test.", fmain);
-				//Start test:
-				sv_out.writeUTF("OK");
-				quizMain(no_of_questions);
+				if(sv_in.readUTF().equals("START")) {
+					//Show a dialog box, asking if test should be started:
+					errBox("Ready to start test.", fmain);
+					//Start test:
+					sv_out.writeUTF("OK");
+					//Close start dialog:
+					startd.dispose();
+					//Start quiz:
+					quizMain(no_of_questions);
+				}
 			}
 		} catch(IOException ioe) {
 			System.out.println("I/O Error!");
@@ -124,24 +125,28 @@ public class Client {
 		}
 	}
 	
+	//These objects were taken out of quizMain() to avoid compile errors:
+	//Question object:
+	private Question qtemp=null;
+	//Current question number:
+	private int curq=0;
+	//Option selector:
+	JComboBox<String> opts=null;
+	
 	//Start quiz client, takes number of questions as argument:
 	private void quizMain(int n) {
-		//Question object:
-		Question qtemp;
+		//Main application frame:
+		fmain=new JFrame();
+		fmain.setSize(1200, 1200);
+		fmain.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		//Add 5 rows: selector buttons, question content, previous answer (if any), option selector, "Select answer" and submit buttons:
 		fmain.setLayout(new GridLayout(5, 1));
-		//Is the test active?
-		boolean test_active=true;
-		//Current question number:
-		int curq=0;
 		//Create Question content field:
 		JTextArea qcontent=new JTextArea(400, 400);
 		qcontent.setEditable(false);
 		//Previous answer field:
 		JTextField prevans=new JTextField(400);
 		prevans.setEditable(false);
-		//Option selector:
-		JDropDown opts=new JDropDown();
 		
 		//Array to store answers:
 		String[] answers=new String[n];
@@ -162,8 +167,8 @@ public class Client {
 						//Send question number:
 						sv_out.writeUTF(String.valueOf(curq));
 						//Wait for response and send submitted answer:
-						if(sv_in.readUTF().equals("ANS") {
-							sv_out.writeUTF(opts.getSelectedOption());
+						if(sv_in.readUTF().equals("ANS")) {
+							sv_out.writeUTF((String)opts.getSelectedItem());
 						}
 					}
 				} catch(IOException c) {
@@ -174,14 +179,14 @@ public class Client {
 		//Submit button:
 		JButton submitbutton=new JButton("Submit");
 		submitbutton.addActionListener(new ActionListener() {
-			public void actionPerformed() {
+			public void actionPerformed(ActionEvent e) {
 				try {
 					//Send "Submit" signal to server:
 					sv_out.writeUTF("S");
 					//Get response from server:
 					if(sv_in.readUTF().equals("RESPS")) {
 						//Send OK to server:
-						sv_out.writeUTF("OK"):
+						sv_out.writeUTF("OK");
 						//Get user responses:
 						for(int i=0; i<n; ++i) responses[i]=new String(sv_in.readUTF());
 					}
@@ -216,10 +221,67 @@ public class Client {
 				}
 			}
 		});
+		//Add buttons to bpanel:
+		bpanel.add(saveans);
+		bpanel.add(submitbutton);
 		
-		//Create question button panel and add buttons:
-		JButton qbuttons=new JButton[n];
-		for(int i=0; //CONTINUE FROM HERE!
+		//Create question button panel and add buttons to it:
+		JButton[] qbuttons=new JButton[n];
+		JPanel qbs=new JPanel();
+		qbs.setLayout(new GridLayout(1, n));
+		for(int i=0; i<n; ++i) {
+			//Create button:
+			qbuttons[i]=new JButton(String.valueOf(i+1));
+			//Action for button:
+			qbuttons[i].addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					//Set question number:
+					curq=Integer.valueOf(e.getActionCommand());
+					try {
+						//Send question request:
+						sv_out.writeUTF("Q");
+						//Get question:
+						if(sv_in.readUTF().equals("OK")) {
+								//Send question number:
+								sv_out.writeUTF(String.valueOf(curq));
+								//Get question object:
+								qtemp=(Question)question_in.readObject();
+								//Get previous answer:
+								prevans.setText(sv_in.readUTF());
+								//Display questions content:
+								qcontent.setText(qtemp.getContent());
+								//Populate options list:
+								opts=new JComboBox<String>();
+								for(String op: qtemp.getOptions()) opts.addItem(op);
+						}
+					} catch(IOException ex) {
+						errBox("I/O Error!", fmain);
+					} catch(ClassNotFoundException cl) {
+						//This should NEVER happen!
+						errBox("Fatal Exception", fmain);
+						fmain.dispose();
+						System.exit(1);
+					}
+				}
+			});
+			//Add button to panel:
+			qbs.add(qbuttons[i]);
+		}
+		//Add question button panel:
+		fmain.add(qbs);
+		//Add question field:
+		fmain.add(new JLabel("Question"));
+		fmain.add(qcontent);
+		//Add previous answer field:
+		fmain.add(new JLabel("Previous answer"));
+		fmain.add(prevans);
+		//Add options dropdown:
+		fmain.add(new JLabel("Options"));
+		fmain.add(opts);
+		//Add submit buttons:
+		fmain.add(bpanel);
+		//Make fmain visible:
+		fmain.setVisible(true);
 	}
 	
 	//Main method:
