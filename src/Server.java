@@ -24,6 +24,8 @@ public class Server {
 			System.out.println("Fatal I/O error!");
 			System.exit(1);
 		}
+		//Status message:
+		System.out.println("Listening on port " + args[0]);
 		//Temporary Socket object:
 		Socket s=null;
 		//Check for connection and handle clients:

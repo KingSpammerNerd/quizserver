@@ -1,4 +1,3 @@
-//Finished.
 import java.util.*;
 import java.io.*;
 import java.net.*;
@@ -123,9 +122,17 @@ public class ClientHandler extends Thread {
 		}
 	}
 	
-	//Question serving method:
+	//Method to flush all data streams:
+	private void flushAll() throws IOException {
+		client_out.flush();
+		question_out.flush();
+	}
+	
+	//Request handling method:
 	private void handleTest() throws IOException {
+		//Handle client requests:
 		if(client_in.readUTF().equals("Q")) {
+			printMsgln("Sending question to " + client_ip);
 			client_out.writeUTF("OK");
 			//Get array index:
 			int ind=(Integer.valueOf(client_in.readUTF()))-1;
@@ -136,8 +143,10 @@ public class ClientHandler extends Thread {
 				client_out.writeUTF("None");
 			else
 				client_out.writeUTF(responses[ind]);
+			flushAll();
 		}
-		else if(client_in.readUTF().equals("A")) {
+		if(client_in.readUTF().equals("A")) {
+			printMsgln("Getting answer from " + client_ip);
 			client_out.writeUTF("OK");
 			//Get array index:
 			int ind=(Integer.valueOf(client_in.readUTF()))-1;
@@ -145,8 +154,10 @@ public class ClientHandler extends Thread {
 			client_out.writeUTF("ANS");
 			//Get answer:
 			responses[ind]=client_in.readUTF();
+			flushAll();
 		}
-		else if(client_in.readUTF().equals("S")) {
+		if(client_in.readUTF().equals("S")) {
+			printMsgln(client_ip + " has submitted their test");
 			//Score variable;
 			int score=0;
 			//Send candidate's responses:
@@ -173,7 +184,7 @@ public class ClientHandler extends Thread {
 				//Send score:
 				client_out.writeUTF(String.valueOf(score));
 			}
-			
+			flushAll();
 			//Kill question handler:
 			sv_active=false;
 		}

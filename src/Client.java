@@ -74,13 +74,17 @@ public class Client {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					sock=new Socket(ipbox.getText(), Integer.valueOf(portbox.getText()));
-					throw new Exception("success");
+					throw new Exception() {
+						public String toString() {
+							return new String("success");
+						}
+					};
 				} catch(UnknownHostException u) {
 					errBox("Unknown host: " + ipbox.getText() + ':' + portbox.getText(), startd);
 				} catch(IOException i) {
 					errBox("I/O Error!", startd);
 				} catch(Exception exc) {
-					if(exc.getMessage().equals("success")) quizInit();
+					if(exc.toString().equals("success")) quizInit();
 				}
 			}
 		});
@@ -95,7 +99,7 @@ public class Client {
 		startd.setVisible(true);
 	}
 	
-	//Initialize all data stores and prepare to start quiz:
+	//Initialize all data streams and prepare to start quiz:
 	private void quizInit() {
 		try {
 			//Initialize data streams:
@@ -109,18 +113,18 @@ public class Client {
 				//Get number of questions:
 				int no_of_questions=Integer.valueOf(sv_in.readUTF());
 				if(sv_in.readUTF().equals("START")) {
-					//Show a dialog box, asking if test should be started:
-					errBox("Ready to start test.", fmain);
 					//Start test:
 					sv_out.writeUTF("OK");
 					//Close start dialog:
 					startd.dispose();
+					//Flush sv_out:
+					sv_out.flush();
 					//Start quiz:
 					quizMain(no_of_questions);
 				}
 			}
 		} catch(IOException ioe) {
-			System.out.println("I/O Error!");
+			errBox("I/O Error!", fmain);
 			System.exit(1);
 		}
 	}
@@ -131,16 +135,16 @@ public class Client {
 	//Current question number:
 	private int curq=0;
 	//Option selector:
-	JComboBox<String> opts=null;
+	JComboBox<String> opts=new JComboBox<String>();
 	
 	//Start quiz client, takes number of questions as argument:
 	private void quizMain(int n) {
 		//Main application frame:
 		fmain=new JFrame();
-		fmain.setSize(1200, 1200);
-		fmain.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		fmain.setSize(400, 450);
+		fmain.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		//Add 5 rows: selector buttons, question content, previous answer (if any), option selector, "Select answer" and submit buttons:
-		fmain.setLayout(new GridLayout(5, 1));
+		fmain.setLayout(new GridLayout(8, 1));
 		//Create Question content field:
 		JTextArea qcontent=new JTextArea(400, 400);
 		qcontent.setEditable(false);
@@ -171,6 +175,10 @@ public class Client {
 							sv_out.writeUTF((String)opts.getSelectedItem());
 						}
 					}
+					//Disable self:
+					((JButton)e.getSource()).setEnabled(false);
+					//Flush sv_out:
+					sv_out.flush();
 				} catch(IOException c) {
 					errBox("I/O Error!", fmain);
 				}
@@ -187,6 +195,8 @@ public class Client {
 					if(sv_in.readUTF().equals("RESPS")) {
 						//Send OK to server:
 						sv_out.writeUTF("OK");
+						//Flush sv_out:
+						sv_out.flush();
 						//Get user responses:
 						for(int i=0; i<n; ++i) responses[i]=new String(sv_in.readUTF());
 					}
@@ -194,6 +204,8 @@ public class Client {
 					if(sv_in.readUTF().equals("SOLS")) {
 						//Send OK to server:
 						sv_out.writeUTF("OK");
+						//Flush sv_out:
+						sv_out.flush();
 						//Get answers:
 						for(int i=0; i<n; ++i) answers[i]=new String(sv_in.readUTF());
 					}
@@ -225,6 +237,8 @@ public class Client {
 		bpanel.add(saveans);
 		bpanel.add(submitbutton);
 		
+		//Make fmain visible:
+		fmain.setVisible(true);
 		//Create question button panel and add buttons to it:
 		JButton[] qbuttons=new JButton[n];
 		JPanel qbs=new JPanel();
@@ -235,11 +249,16 @@ public class Client {
 			//Action for button:
 			qbuttons[i].addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					//Set question number:
-					curq=Integer.valueOf(e.getActionCommand());
 					try {
+						//Set previously selected button as enabled and disable selected button:
+						qbuttons[curq].setEnabled(true);
+						((JButton)e.getSource()).setEnabled(false);
+						//Set question number:
+						curq=Integer.valueOf(e.getActionCommand());
 						//Send question request:
 						sv_out.writeUTF("Q");
+						//Flush sv_out:
+						sv_out.flush();
 						//Get question:
 						if(sv_in.readUTF().equals("OK")) {
 								//Send question number:
@@ -251,16 +270,15 @@ public class Client {
 								//Display questions content:
 								qcontent.setText(qtemp.getContent());
 								//Populate options list:
-								opts=new JComboBox<String>();
 								for(String op: qtemp.getOptions()) opts.addItem(op);
 						}
+						//Enable saveans button:
+						saveans.setEnabled(true);
 					} catch(IOException ex) {
 						errBox("I/O Error!", fmain);
 					} catch(ClassNotFoundException cl) {
 						//This should NEVER happen!
 						errBox("Fatal Exception", fmain);
-						fmain.dispose();
-						System.exit(1);
 					}
 				}
 			});
@@ -280,8 +298,6 @@ public class Client {
 		fmain.add(opts);
 		//Add submit buttons:
 		fmain.add(bpanel);
-		//Make fmain visible:
-		fmain.setVisible(true);
 	}
 	
 	//Main method:
