@@ -180,6 +180,7 @@ public class ClientHandler extends Thread {
 		if(client_in.readUTF().equals("OK")) {
 			for(String s: responses) {
 				client_out.writeUTF(s);
+				client_out.flush();
 			}
 		}
 		//Send answers and score:
@@ -195,6 +196,7 @@ public class ClientHandler extends Thread {
 					score+=0;
 				//Send answer:
 				client_out.writeUTF(questions[i].getAnswer());
+				client_out.flush();
 			}
 			//Send score:
 			client_out.writeUTF(String.valueOf(score));

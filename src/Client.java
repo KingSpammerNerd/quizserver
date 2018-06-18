@@ -129,6 +129,36 @@ public class Client {
 		}
 	}
 	
+	//Show results after test submission:
+	private void showResults(String[] answers, String[] responses, int score) {
+		//Number of questions:
+		int n=answers.length;
+		//Create frame:
+		JFrame rframe=new JFrame();
+		//Set size of frame:
+		rframe.setSize(500, (n+4)*30);
+		//Set layout:
+		rframe.setLayout(new GridLayout(n+4, 3));
+		//Create close button:
+		JButton closer=new JButton("Close");
+		closer.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				rframe.dispose();
+				System.exit(0);
+			}
+		});
+		//Add text:
+		rframe.add(new Label("RESULTS")); rframe.add(new Label("")); rframe.add(new Label(""));
+		rframe.add(new Label("Q No.")); rframe.add(new Label("Answer")); rframe.add(new Label("Your response"));
+		for(int i=0; i<n; ++i) {
+			rframe.add(new Label(String.valueOf(i+1))); rframe.add(new Label(answers[i])); rframe.add(new Label(responses[i]));
+		}
+		rframe.add(new Label("Score:")); rframe.add(new Label(String.valueOf(score))); rframe.add(new Label(""));
+		rframe.add(new Label("")); rframe.add(closer); rframe.add(new Label(""));
+		//Make rframe visible:
+		rframe.setVisible(true);
+	}
+	
 	//These objects were taken out of quizMain() to avoid compile errors:
 	//Question object:
 	private Question qtemp=null;
@@ -221,13 +251,8 @@ public class Client {
 					
 					//Kill fmain:
 					fmain.dispose();
-					//Build result string:
-					StringBuilder fin=new StringBuilder();
-					fin.append("RESULTS:\nRESPONSE\tANSWER\n");
-					for(int i=0; i<n; ++i) fin.append(responses[i] + '\t' + answers[i] + '\n');
-					fin.append("Score: " + score);
 					//Display results:
-					errBox(fin.toString(), null);
+					showResults(answers, responses, score);
 				} catch(IOException c) {
 					errBox("I/O Error!", fmain);
 				}
@@ -251,7 +276,7 @@ public class Client {
 				public void actionPerformed(ActionEvent e) {
 					try {
 						//Set previously selected button as enabled and disable selected button:
-						qbuttons[curq].setEnabled(true);
+						if(curq!=0) qbuttons[curq-1].setEnabled(true);
 						((JButton)e.getSource()).setEnabled(false);
 						//Set question number:
 						curq=Integer.valueOf(e.getActionCommand());
@@ -269,6 +294,8 @@ public class Client {
 								prevans.setText(sv_in.readUTF());
 								//Display questions content:
 								qcontent.setText(qtemp.getContent());
+								//Clear options list:
+								opts.removeAllItems();
 								//Populate options list:
 								for(String op: qtemp.getOptions()) opts.addItem(op);
 						}
