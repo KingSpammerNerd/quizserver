@@ -25,7 +25,7 @@ public class Server {
 			System.exit(1);
 		}
 		//Status message:
-		System.out.println("Listening on port " + args[0]);
+		System.out.println("Listening on port " + args[0] + "...");
 		//Temporary Socket object:
 		Socket s=null;
 		//Check for connection and handle clients:

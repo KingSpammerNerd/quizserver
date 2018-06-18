@@ -14,10 +14,8 @@ public class ClientHandler extends Thread {
 	private DataInputStream client_in;
 	//DataOutputStream, to send data:
 	private DataOutputStream client_out;
-	//ObjectOutputStream, to send questions:
+	//ObjectOutputStream, to send question objects:
 	private ObjectOutputStream question_out;
-	//Should the server keep running?
-	private boolean sv_active;
 	//Exception object:
 	ConnClosedException cc;
 	
@@ -72,9 +70,6 @@ public class ClientHandler extends Thread {
 		this.responses=new String[questions.length];
 		for(int i=0; i<answers.length; ++i) answers[i]=questions[i].getAnswer();
 		
-		//Set active status to true:
-		this.sv_active=true;
-		
 		//Initialize exception object:
 		this.cc=new ConnClosedException(client_ip);
 	}
@@ -98,8 +93,26 @@ public class ClientHandler extends Thread {
 			client_out.writeUTF(String.valueOf(questions.length));
 			
 			//Start test:
+			//Temp string:
+			String req=null;
 			client_out.writeUTF("START");
-			if(client_in.readUTF().equals("OK")) while(sv_active) handleTest();
+			if(client_in.readUTF().equals("OK")) while(true) {
+				//Get request code:
+				req=new String(client_in.readUTF());
+				//Check and handle request:
+				if(req.equals("Q")) {
+					handleQ();
+					continue;
+				}
+				if(req.equals("A")) {
+					handleA();
+					continue;
+				}
+				if(req.equals("S")) {
+					handleS();
+					break;
+				}
+			}
 						
 			//Close connection:
 			client_out.writeUTF("BYE");
@@ -128,65 +141,64 @@ public class ClientHandler extends Thread {
 		question_out.flush();
 	}
 	
-	//Request handling method:
-	private void handleTest() throws IOException {
-		//Handle client requests:
-		if(client_in.readUTF().equals("Q")) {
-			printMsgln("Sending question to " + client_ip);
-			client_out.writeUTF("OK");
-			//Get array index:
-			int ind=(Integer.valueOf(client_in.readUTF()))-1;
-			//Send question object from array:
-			question_out.writeObject(questions[ind]);
-			//Send previously submitted answer, if any:
-			if(responses[ind]==null)
-				client_out.writeUTF("None");
-			else
-				client_out.writeUTF(responses[ind]);
-			flushAll();
-		}
-		if(client_in.readUTF().equals("A")) {
-			printMsgln("Getting answer from " + client_ip);
-			client_out.writeUTF("OK");
-			//Get array index:
-			int ind=(Integer.valueOf(client_in.readUTF()))-1;
-			//Send ready message:
-			client_out.writeUTF("ANS");
-			//Get answer:
-			responses[ind]=client_in.readUTF();
-			flushAll();
-		}
-		if(client_in.readUTF().equals("S")) {
-			printMsgln(client_ip + " has submitted their test");
-			//Score variable;
-			int score=0;
-			//Send candidate's responses:
-			client_out.writeUTF("RESPS");
-			if(client_in.readUTF().equals("OK")) {
-				for(String s: responses) {
-					client_out.writeUTF(s);
-				}
+	//Handle Q request:
+	private void handleQ() throws IOException {
+		printMsgln("Sending question to " + client_ip);
+		client_out.writeUTF("OK");
+		//Get array index:
+		int ind=(Integer.valueOf(client_in.readUTF()))-1;
+		//Send question object from array:
+		question_out.writeObject(questions[ind]);
+		//Send previously submitted answer, if any:
+		if(responses[ind]==null)
+			client_out.writeUTF("None");
+		else
+			client_out.writeUTF(responses[ind]);
+		flushAll();
+	}
+	
+	//Handle A request:
+	private void handleA() throws IOException {
+		printMsgln("Getting answer from " + client_ip);
+		client_out.writeUTF("OK");
+		//Get array index:
+		int ind=(Integer.valueOf(client_in.readUTF()))-1;
+		//Send ready message:
+		client_out.writeUTF("ANS");
+		//Get answer:
+		responses[ind]=client_in.readUTF();
+		flushAll();
+	}
+	
+	//Handle S request:
+	private void handleS() throws IOException {
+		printMsgln(client_ip + " has submitted their test");
+		//Score variable;
+		int score=0;
+		//Send candidate's responses:
+		client_out.writeUTF("RESPS");
+		if(client_in.readUTF().equals("OK")) {
+			for(String s: responses) {
+				client_out.writeUTF(s);
 			}
-			//Send answers and score:
-			client_out.writeUTF("SOLS");
-			if(client_in.readUTF().equals("OK")) {
-				for(int i=0; i<questions.length; ++i) {
-					//Change score:
-					if(questions[i].getAnswer().equals(responses[i]))
-						score+=reward;
-					else if(!questions[i].getAnswer().equals(responses[i]) && !responses[i].equals(""))
-						score-=ded;
-					else
-						score+=0;
-					//Send answer:
-					client_out.writeUTF(questions[i].getAnswer());
-				}
-				//Send score:
-				client_out.writeUTF(String.valueOf(score));
-			}
-			flushAll();
-			//Kill question handler:
-			sv_active=false;
 		}
+		//Send answers and score:
+		client_out.writeUTF("SOLS");
+		if(client_in.readUTF().equals("OK")) {
+			for(int i=0; i<questions.length; ++i) {
+				//Change score:
+				if(questions[i].getAnswer().equals(responses[i]))
+					score+=reward;
+				else if(!questions[i].getAnswer().equals(responses[i]) && !responses[i].equals(""))
+					score-=ded;
+				else
+					score+=0;
+				//Send answer:
+				client_out.writeUTF(questions[i].getAnswer());
+			}
+			//Send score:
+			client_out.writeUTF(String.valueOf(score));
+		}
+		flushAll();
 	}
 }
